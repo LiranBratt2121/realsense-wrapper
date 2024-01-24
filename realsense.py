@@ -22,6 +22,8 @@ class RealsenseCamera:
         - process: Processes the depth and color frames, and calculates yaw, pitch, and roll angles.
         - get_yaw_from_target: Calculates the yaw angle from the camera to the target
         - get_distance_from_target: Calculates the linear distance from the camera to the target
+        - initialize_camera: Initializes the YOLOv8 model
+        - detect_game_piece_YOLO: Detects a gamepiece using the YOLOv8 model and annotates the frame accordingly.
     """
 
     ALPHA = 0.98
@@ -281,21 +283,33 @@ class RealsenseCamera:
     
     
     def initialize_model(self, model_type: ModelType) -> None:
-        self.__model = YOLO('Best' if model_type.value == 0 else 'LAST')
+        """
+        ## Initializes a yolov8 model.
+        ----
+        
+        Args:
+        ----
+            model_type (enum.ModelType): if type = BEST sets the best weights if type = LAST sets model to last     
+        """
+        self.__model = YOLO(r'weights\best.pt' if model_type.value == 0 else r'weights\last.pt')
         
         
-    def process_frame(self, frame: np.ndarray) -> np.ndarray:
-        results = self.__model(frame)[0]
+    def detect_game_piece_YOLO(self) -> np.ndarray:
+        """"
+        ## Detects a game piece using a YOLOv8 model, and annotates the frame with a bbox of the detection.
+        ----
+        """
+
+        results = self.__model(self.frame)[0]
         
         detections = sv.Detections.from_yolov8(results)
 
         box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
 
         labels = [f"{self.__model.names[class_id]} {confidence:0.2f}" for _, _, confidence, class_id, _ in detections]
-        frame = box_annotator.annotate(scene=frame, detections=detections, labels=labels)
+        
+        self.frame = box_annotator.annotate(scene=self.frame, detections=detections, labels=labels)
 
-        return frame
-    
 
 def main():
     camera = RealsenseCamera()
