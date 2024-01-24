@@ -300,7 +300,7 @@ class RealsenseCamera:
         ----
         """
 
-        results = self.__model(self.frame)[0]
+        results = self.__model(self.color_image)[0]
         
         detections = sv.Detections.from_yolov8(results)
 
@@ -308,7 +308,7 @@ class RealsenseCamera:
 
         labels = [f"{self.__model.names[class_id]} {confidence:0.2f}" for _, _, confidence, class_id, _ in detections]
         
-        self.frame = box_annotator.annotate(scene=self.frame, detections=detections, labels=labels)
+        self.color_image = box_annotator.annotate(scene=self.color_image, detections=detections, labels=labels)
 
 
 def main():
