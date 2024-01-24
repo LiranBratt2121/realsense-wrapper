@@ -1,5 +1,7 @@
 import pyrealsense2 as rs
 from ultralytics import YOLO
+import supervision as sv
+from enum import Enum
 import numpy as np
 import cv2
 
@@ -26,6 +28,10 @@ class RealsenseCamera:
     RAD_TO_DEG = 57.2958
     PI = np.pi
     
+    class ModelType(Enum):
+        BEST = 0
+        LAST = 1
+
     def __init__(self) -> None:
         """
         ## Initializes a RealsenseCamera object.
@@ -91,6 +97,8 @@ class RealsenseCamera:
         self.yaw = float() 
         self.pitch = float() 
         self.roll = float()
+        
+        self.__model = YOLO()
         
                 
     def initialize_camera(self) -> tuple[rs.pipeline, rs.config]:
@@ -255,7 +263,7 @@ class RealsenseCamera:
         ----
         - Tuple[str, float] = (focal_length, image_size)
         """
-        profile = self.pipe.get_active_profile()
+        profile: rs.pipeline_profile = self.pipe.get_active_profile()
         depth_profile = rs.video_stream_profile(profile.get_stream(rs.stream.depth))
         intrinsics = depth_profile.get_intrinsics()
 
@@ -270,8 +278,25 @@ class RealsenseCamera:
         image_size = (height, width)
         
         return focal_length, image_size
+    
+    
+    def initialize_model(self, model_type: ModelType) -> None:
+        self.__model = YOLO('Best' if model_type.value == 0 else 'LAST')
         
         
+    def process_frame(self, frame: np.ndarray) -> np.ndarray:
+        results = self.__model(frame)[0]
+        
+        detections = sv.Detections.from_yolov8(results)
+
+        box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
+
+        labels = [f"{self.__model.names[class_id]} {confidence:0.2f}" for _, _, confidence, class_id, _ in detections]
+        frame = box_annotator.annotate(scene=frame, detections=detections, labels=labels)
+
+        return frame
+    
+
 def main():
     camera = RealsenseCamera()
     
