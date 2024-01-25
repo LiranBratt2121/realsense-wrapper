@@ -316,11 +316,13 @@ class RealsenseCamera:
 def main():
     camera = RealsenseCamera()
     
+    camera.initialize_camera()
+    camera.initialize_model(RealsenseCamera.ModelType.BEST)
+    
     while True:
         camera.process()
-        
-        cv2.putText(camera.color_image, f"Yaw: {camera.yaw:.2f} Pitch: {camera.pitch:.2f} Roll: {camera.roll:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0))
-        
+        camera.detect_game_piece_YOLO()
+            
         cv2.imshow("Depth", camera.depth_color_map)
         cv2.imshow("Color", camera.color_image)
         
