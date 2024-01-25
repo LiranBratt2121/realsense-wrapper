@@ -23,16 +23,24 @@ class RealsenseCamera:
         - get_yaw_from_target: Calculates the yaw angle from the camera to the target
         - get_distance_from_target: Calculates the linear distance from the camera to the target
         - initialize_camera: Initializes the YOLOv8 model
-        - detect_game_piece_YOLO: Detects a gamepiece using the YOLOv8 model and annotates the frame accordingly.
+        - detect_game_piece_YOLO: Detects and annotates a self.color_image with the detected game piece using YOLOv8 model
     """
-
     ALPHA = 0.98
     RAD_TO_DEG = 57.2958
     PI = np.pi
     
     class ModelType(Enum):
+        """
+        ## Enum for specifying the type of YOLOv8 model to use.
+        ----
+        Attributes:
+        ----
+            - BEST (int): Use the best performing YOLOv8 model.
+            - LAST (int): Use the last trained YOLOv8 model.
+        """
         BEST = 0
         LAST = 1
+
 
     def __init__(self) -> None:
         """
@@ -66,7 +74,9 @@ class RealsenseCamera:
             - __total_gyro_angleZ(float): Total gyrometer angle around the Z-axis.
             - __total_gyro_angleY(float): Total gyrometer angle around the Y-axis.
             - __total_gyro_angleX(float): Total gyrometer angle around the X-axis.
-            - __first (bool): Flag indicating whether it is the first frame.
+            - __first(bool): Flag indicating whether it is the first frame.
+            - __model(YOLO): A YOLOv8 model instant
+            - __box_annotator(BoxAnnotator): An annotator for annotating bounding boxes in images
         """
         self.pipe, self.cfg = self.initialize_camera()
 
@@ -101,6 +111,8 @@ class RealsenseCamera:
         self.roll = float()
         
         self.__model = YOLO()
+        
+        self.__box_annotator = sv.BoxAnnotator
         
                 
     def initialize_camera(self) -> tuple[rs.pipeline, rs.config]:
@@ -298,19 +310,16 @@ class RealsenseCamera:
         
     def detect_game_piece_YOLO(self) -> np.ndarray:
         """"
-        ## Detects a game piece using a YOLOv8 model, and annotates the frame with a bbox of the detection.
+        ## Detects and annotates a self.color_image with the detected game piece using YOLOv8 model
         ----
         """
-
         results = self.__model(self.color_image)[0]
         
         detections = sv.Detections.from_yolov8(results)
 
-        box_annotator = sv.BoxAnnotator(thickness=4, text_thickness=4, text_scale=2)
-
         labels = [f"{self.__model.names[class_id]} {confidence:0.2f}" for _, _, confidence, class_id, _ in detections]
         
-        self.color_image = box_annotator.annotate(scene=self.color_image, detections=detections, labels=labels)
+        self.color_image = self.__box_annotator.annotate(scene=self.color_image, detections=detections, labels=labels)
 
 
 def main():
