@@ -284,14 +284,16 @@ class RealsenseCamera:
     
     def initialize_model(self, model_type: ModelType) -> None:
         """
-        ## Initializes a yolov8 model.
+        ## Initializes a YOLOv8 model.
         ----
         
         Args:
         ----
-            model_type (enum.ModelType): if type = BEST sets the best weights if type = LAST sets model to last     
+            model_type (enum.ModelType): if type = BEST sets to the best weights if type = LAST sets model to last     
         """
-        self.__model = YOLO(r'weights\best.pt' if model_type.value == 0 else r'weights\last.pt')
+        model_path = 'weights/best.pt' if model_type == model_type.BEST else 'weights/last.pt'
+        self.__model = YOLO(model_path)
+        self.__box_annotator = sv.BoxAnnotator(thickness=3, text_thickness=3, text_scale=2)
         
         
     def detect_game_piece_YOLO(self) -> np.ndarray:
